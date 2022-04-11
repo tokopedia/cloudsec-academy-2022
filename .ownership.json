@@ -1,0 +1,15 @@
+{
+  "repository_name": "cloudsec-academy-2022",
+  "description": "Cloud Security Tech Workshop Academy 2022",
+  "directorate": "TECH",
+  "namespace": "cloudsec",
+  "security_owner": "nasohi.ciptandani@tokopedia.com",
+  "app": [{
+    "name": "N/A",
+    "description": "N/A",
+    "owner": "N/A",
+    "slack_channel": "N/A",
+    "db": []
+  }],
+  "last_update":"08/04/2022"
+}
