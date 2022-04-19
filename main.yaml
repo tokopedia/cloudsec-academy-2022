@@ -1,0 +1,204 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  AWS CloudFormation Template for Tokopedia Academy 2022 participants. 
+  There are few resources that are created in this CloudFormation file:
+    1. 1x S3 Bucket where the Bucket Policy is configured to be public 
+    2. 3x EC2 instances with port 80 & 22 open, and Test VM
+    3. 3x Security Groups for each EC2 instances to configure firewall
+Parameters:
+  # as the S3 bucket name needs to be globally unique, participants needs to add random digit
+  # characters to be able to create the bucket
+  BucketChars:
+    Description: Please enter 4 random digit characters
+    Type: String
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+    ConstraintDescription: must be a valid EC2 instance type.
+  # need to create EC2 KeyPair first before proceeding to run the CloudFormation
+  KeyName:
+    Default: "EC2 KeyPair"
+    Description: "The existing of EC2 KeyPair name to enable SSH access to the instance"
+    Type: "AWS::EC2::KeyPair::KeyName"
+    ConstraintDescription: The existing of EC2 KeyPair name.
+
+Mappings:
+  AWSInstanceType2Arch:
+    t2.micro:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    # ap-southeast-1: #Singapore region
+    #   HVM64: ami-0ba35dc9caf73d1c7
+    #   HVMG2: ami-0e46ce0d6a87dc979
+    ap-southeast-2: #Australia region
+      HVM64: ami-0ae99b503e8694028
+      HVMG2: ami-0c0ab057a101d8ff2
+
+Resources:
+  #Create S3 Bucket and enable Public Access to S3 bucket
+  #set the PublicAccessBlock to FALSE
+  S3PublicRead:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        !Join ["-", [s3-public-read-cloudsec-academy, !Ref BucketChars]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: FALSE #Specifies whether Amazon S3 should block public access control lists (ACLs) for this bucket and objects in this bucket.
+        BlockPublicPolicy: FALSE #Specifies whether Amazon S3 should block public bucket policies for this bucket.
+        IgnorePublicAcls: FALSE #Specifies whether Amazon S3 should ignore public ACLs for this bucket and objects in this bucket.
+        RestrictPublicBuckets: FALSE #Specifies whether Amazon S3 should restrict public bucket policies for this bucket.
+
+  ##### 1. EC2 Instance Target 1 ("tkpd-ec2-port-22") #####
+
+  # Create EC2 Instance with port 80 open and using the "InstanceSecurityGroup80"
+  # Security Group to open port 80 for the created instance. Also, add startup
+  # script to run Welcome page
+  EC2Instance80:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup80
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref "AWS::Region"
+        - !FindInMap
+          - AWSInstanceType2Arch
+          - !Ref InstanceType
+          - Arch
+      Tags:
+        - Key: Name
+          Value: tkpd-ec2-port-22
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install httpd -y
+          service httpd start
+          echo "<html><body><h1>Welcome to Tokopedia Academy 2022. This instance is hosted from Region ${AWS::Region}<h1></body></html>" > /var/www/html/index.html
+
+  ##### Create Security Group to open port 80 to the whole internet #####
+
+  # Note: it is highly discourage to allow 0.0.0.0/0 in your network.
+  # The best practice is to narrow the CIDR ranges to the needs
+  # such as 175.126.0.0/28, 175.126.12.12/32, etc
+  InstanceSecurityGroup80:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable http port open
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: 0.0.0.0/0
+
+  ##### 2. EC2 Instance Target 2 ("tkpd-ec2-port-80") #####
+
+  # Create EC2 Instance with port 80 open and using the "InstanceSecurityGroup22"
+  # Security Group to open port 80 for the created instance. Also, add startup
+  # script to run Welcome page
+  EC2Instance22:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup22
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref "AWS::Region"
+        - !FindInMap
+          - AWSInstanceType2Arch
+          - !Ref InstanceType
+          - Arch
+      Tags:
+        - Key: Name
+          Value: tkpd-ec2-port-80
+
+  # Create Security Group to open port 22 to the whole internet
+  # Note: it is highly discourage to allow 0.0.0.0/0 in your network.
+  # The best practice is to narrow the CIDR ranges to the needs
+  # such as 175.126.0.0/28, 175.126.12.12/32, etc
+  InstanceSecurityGroup22:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable ssh port (22) open
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: 0.0.0.0/0
+
+  ##### 3. EC2 Instance Target 3 ("tkpd-ec2-ext-conn") #####
+
+  # Create EC2 Instance that does external connection to the internet
+  # Security Group to open port 80 for the created instance. Also, add startup
+  # script to run Welcome page
+  EC2InstanceTester:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref InstanceSecurityGroupTester
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref "AWS::Region"
+        - !FindInMap
+          - AWSInstanceType2Arch
+          - !Ref InstanceType
+          - Arch
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Name
+          Value: tkpd-ec2-ext-conn
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          mkdir domains && curl https://raw.githubusercontent.com/jasongautama/academy-repo/main/queries.txt > ./domains/queries.txt
+          curl https://raw.githubusercontent.com/jasongautama/academy-repo/main/guard-duty-tester.sh > guard-duty-tester.sh
+          chmod a+x guard-duty-tester.sh && ./guard-duty-tester.sh
+
+  # Create Security Group to open port 22 to the whole internet
+  # Note: it is highly discourage to allow 0.0.0.0/0 in your network.
+  # The best practice is to narrow the CIDR ranges to the needs
+  # such as 175.126.0.0/28, 175.126.12.12/32, etc
+  InstanceSecurityGroupTester:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Sec Group for Tester Instance
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  PublicReadBucket:
+    Description: S3 Bucket that is made to be public
+    Value: !Ref S3PublicRead
+  InstanceIdEC2p80:
+    Description: InstanceId of EC2 instance with port 80 open
+    Value: !Ref EC2Instance80
+  InstanceIdEC2p22:
+    Description: InstanceId of EC2 instance with port 22 open
+    Value: !Ref EC2Instance22
+  InstanceIdEC2Tester:
+    Description: InstanceId of EC2 instance ("tkpd-ec2-ext-conn")
+    Value: !Ref EC2InstanceTester
+  PublicDNSport80:
+    Description: Use this DNS url to visit the welcome page
+    Value: !GetAtt
+      - EC2Instance80
+      - PublicDnsName
+  PublicIPport80:
+    Description: Public IP address for EC2 port 80 ("tkpd-ec2-port-80") instance
+    Value: !GetAtt
+      - EC2Instance80
+      - PublicIp
+  CurrentAvailabilityZone:
+    Description: Availability Zone of the newly created EC2 instance
+    Value: !GetAtt
+      - EC2Instance80
+      - AvailabilityZone
