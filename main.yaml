@@ -31,9 +31,9 @@ Mappings:
     t2.micro:
       Arch: HVM64
   AWSRegionArch2AMI:
-    # ap-southeast-1: #Singapore region
-    #   HVM64: ami-0ba35dc9caf73d1c7
-    #   HVMG2: ami-0e46ce0d6a87dc979
+    ap-southeast-1: #Singapore region
+      HVM64: ami-0ba35dc9caf73d1c7
+      HVMG2: ami-0e46ce0d6a87dc979
     ap-southeast-2: #Australia region
       HVM64: ami-0ae99b503e8694028
       HVMG2: ami-0c0ab057a101d8ff2
@@ -72,7 +72,7 @@ Resources:
           - Arch
       Tags:
         - Key: Name
-          Value: tkpd-ec2-port-22
+          Value: tkpd-ec2-port-80
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -94,6 +94,9 @@ Resources:
           FromPort: "80"
           ToPort: "80"
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: tkpd-sg-port-80
 
   ##### 2. EC2 Instance Target 2 ("tkpd-ec2-port-80") #####
 
@@ -115,7 +118,7 @@ Resources:
           - Arch
       Tags:
         - Key: Name
-          Value: tkpd-ec2-port-80
+          Value: tkpd-ec2-port-22
 
   # Create Security Group to open port 22 to the whole internet
   # Note: it is highly discourage to allow 0.0.0.0/0 in your network.
@@ -130,6 +133,9 @@ Resources:
           FromPort: "22"
           ToPort: "22"
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: tkpd-sg-port-22
 
   ##### 3. EC2 Instance Target 3 ("tkpd-ec2-ext-conn") #####
 
@@ -173,6 +179,9 @@ Resources:
           FromPort: "22"
           ToPort: "22"
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: tkpd-sg-tester
 
 Outputs:
   PublicReadBucket:
