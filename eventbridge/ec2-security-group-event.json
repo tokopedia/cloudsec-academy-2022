@@ -3,6 +3,6 @@
   "detail-type": ["AWS API Call via CloudTrail"],
   "detail": {
     "eventSource": ["ec2.amazonaws.com"],
-    "eventName": ["AuthorizeSecurityGroupIngress", "RevokeSecurityGroupIngress"]
+    "eventName": ["AuthorizeSecurityGroupIngress"]
   }
 }
