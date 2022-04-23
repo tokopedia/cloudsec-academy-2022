@@ -4,7 +4,7 @@ import os
 
 def lambda_handler(event, context):
     # Check config
-    if os.environ['is_active'].lower() == 'false':
+    if os.environ.get('is_active', 'true').lower() == 'false':
         return {
             'statusCode': 200,
             'body': 'EC2 overly permissive auto-remediation is triggered, but it set to not active'
