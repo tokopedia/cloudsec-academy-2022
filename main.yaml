@@ -37,6 +37,21 @@ Mappings:
     ap-southeast-2: #Australia region
       HVM64: ami-0ae99b503e8694028
       HVMG2: ami-0c0ab057a101d8ff2
+    #us-east-1:
+    #  HVM64: ami-6869aa05
+    #  HVMG2: ami-50b4f047
+    #us-west-2:
+    #  HVM64: ami-7172b611
+    #  HVMG2: ami-002bf460
+    #us-west-1:
+    #  HVM64: ami-31490d51
+    #  HVMG2: ami-699ad409
+    #eu-west-1:
+    #  HVM64: ami-f9dd458a
+    #  HVMG2: ami-f0e0a483
+    #eu-central-1:
+    #  HVM64: ami-ea26ce85
+    #  HVMG2: ami-d9d62ab6
 
 Resources:
   #Create S3 Bucket and enable Public Access to S3 bucket
