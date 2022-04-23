@@ -14,6 +14,7 @@ def lambda_handler(event, context):
     # Retrieve bucket name
     bucketName = event['detail']['requestParameters']['bucketName']
 
+
     # Check whitelisted bucket
     whitelistedBuckets = os.environ.get('whitelisted', '')
 
